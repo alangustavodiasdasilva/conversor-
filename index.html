@@ -478,6 +478,20 @@
         }
       }
       
+      // Função para formatar CNPJ com máscara XX.XXX.XXX/XXXX-XX
+      function formatarCNPJ(cnpj) {
+        if (!cnpj) return '';
+        
+        // Remover qualquer caractere não numérico
+        cnpj = cnpj.replace(/\D/g, '');
+        
+        // Verificar se tem 14 dígitos
+        if (cnpj.length !== 14) return cnpj;
+        
+        // Aplicar máscara
+        return cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
+      }
+      
       // Função para renderizar uma prévia da tabela de dados
       function renderDataTable(dados) {
         if (!dados || dados.length === 0) return;
@@ -509,7 +523,12 @@
           
           colunas.forEach(coluna => {
             const td = document.createElement('td');
-            td.textContent = linha[coluna];
+            // Aplicar formatação de CNPJ para a coluna CNPJ
+            if (coluna === "CNPJ") {
+              td.textContent = formatarCNPJ(linha[coluna]);
+            } else {
+              td.textContent = linha[coluna];
+            }
             tr.appendChild(td);
           });
           
@@ -783,7 +802,7 @@
           // Converter dados para formato de array para adicionar após os cabeçalhos
           const dadosArray = dados.map(row => [
             row["Filial"],
-            row["CNPJ"],
+            formatarCNPJ(row["CNPJ"]), // Aplicando formatação ao CNPJ
             row["Patente Val"],
             row["S/Patente"],
             row["Total Geral"]
