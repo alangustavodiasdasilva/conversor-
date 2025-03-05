@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conversor TXT para Excel - Tetris</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --tetris-cyan: #00f0f0;
+      --tetris-blue: #0000f0;
+      --tetris-orange: #f0a000;
+      --tetris-yellow: #f0f000;
+      --tetris-green: #00f000;
+      --tetris-purple: #a000f0;
+      --tetris-red: #f00000;
+      --tetris-dark: #000060;
+      --tetris-black: #000000;
+      --tetris-gray: #808080;
+    }
+    
+    * {
+      box-sizing: border-box;
+      font-family: 'Press Start 2P', cursive;
+    }
+    
+    body {
+      background-color: var(--tetris-black);
+      color: #fff;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-size: 12px;
+      letter-spacing: 1px;
+      background-image: linear-gradient(rgba(0, 0, 40, 0.8) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(0, 0, 40, 0.8) 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+    
+    .tetris-container {
+      width: 100%;
+      max-width: 700px;
+      padding: 10px;
+      background-color: var(--tetris-dark);
+      border: 4px solid var(--tetris-gray);
+      position: relative;
+      box-shadow: 0 0 20px rgba(0, 240, 240, 0.6);
+    }
+    
+    .tetris-inner {
+      border: 2px solid var(--tetris-cyan);
+      background-color: rgba(0, 0, 20, 0.8);
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    h1 {
+      font-size: 24px;
+      text-align: center;
+      margin-top: 0;
+      margin-bottom: 20px;
+      color: var(--tetris-cyan);
+      text-shadow: 2px 2px 0 #000;
+      letter-spacing: 2px;
+    }
+    
+    .button-container {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .tetris-button {
+      flex: 1;
+      background-color: var(--tetris-red);
+      border: 3px solid #fff;
+      color: #fff;
+      font-size: 14px;
+      text-align: center;
+      padding: 12px;
+      margin: 16px 0;
+      cursor: pointer;
+      position: relative;
+      display: block;
+      text-shadow: 2px 2px 0 #000;
+      transition: all 0.2s;
+    }
+    
+    .tetris-button-blue {
+      background-color: var(--tetris-blue);
+    }
+    
+    .tetris-button:hover {
+      background-color: var(--tetris-orange);
+      transform: translateY(-2px);
+    }
+    
+    .tetris-button-blue:hover {
+      background-color: var(--tetris-cyan);
+    }
+    
+    .tetris-button:active {
+      transform: translateY(1px);
+    }
+    
+    .tetris-button:disabled {
+      background-color: var(--tetris-gray);
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 16px;
+      color: var(--tetris-yellow);
+    }
+    
+    .file-upload {
+      border: 3px dashed var(--tetris-cyan);
+      background-color: rgba(0, 240, 240, 0.1);
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .file-upload:hover {
+      background-color: rgba(0, 240, 240, 0.2);
+      border-color: var(--tetris-yellow);
+    }
+    
+    .file-upload.drag-over {
+      background-color: rgba(0, 240, 240, 0.3);
+    }
+    
+    .tetris-piece {
+      margin: 10px auto;
+      width: 80px;
+      height: 80px;
+      position: relative;
+    }
+    
+    .tetris-i {
+      display: flex;
+      justify-content: center;
+    }
+    
+    .tetris-i .block {
+      width: 20px;
+      height: 20px;
+      background-color: var(--tetris-cyan);
+      box-shadow: 0 0 5px var(--tetris-cyan);
+      margin: 0 1px;
+    }
+    
+    .file-name {
+      margin-top: 15px;
+      font-size: 14px;
+      color: var(--tetris-yellow);
+      word-break: break-all;
+    }
+    
+    .hidden {
+      display: none;
+    }
+    
+    .message {
+      padding: 10px;
+      margin-top: 15px;
+      border: 2px solid #fff;
+      display: none;
+      font-size: 14px;
+    }
+    
+    .message.success {
+      display: block;
+      background-color: rgba(0, 240, 0, 0.2);
+      border-color: var(--tetris-green);
+      color: #fff;
+    }
+    
+    .message.error {
+      display: block;
+      background-color: rgba(240, 0, 0, 0.2);
+      border-color: var(--tetris-red);
+      color: #fff;
+    }
+    
+    .loading {
+      display: none;
+      text-align: center;
+      margin: 15px 0;
+      height: 20px;
+      position: relative;
+    }
+    
+    .loading::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100px;
+      height: 20px;
+      background: linear-gradient(90deg, 
+        var(--tetris-red) 0%,
+        var(--tetris-orange) 20%,
+        var(--tetris-yellow) 40%,
+        var(--tetris-green) 60%,
+        var(--tetris-cyan) 80%,
+        var(--tetris-purple) 100%
+      );
+      background-size: 200% 100%;
+      animation: loading 1s linear infinite;
+    }
+    
+    @keyframes loading {
+      0% { background-position: 200% 0; }
+      100% { background-position: 0 0; }
+    }
+
+    /* File preview section - important for showing all data */
+    .file-preview {
+      margin-top: 20px;
+      margin-bottom: 20px;
+      display: none;
+      border: 2px solid var(--tetris-cyan);
+      padding: 10px;
+      max-height: 250px;
+      overflow-y: auto;
+      background-color: rgba(0, 0, 20, 0.8);
+      font-family: monospace;
+      font-size: 11px;
+      white-space: pre;
+      color: #fff;
+      line-height: 1.2;
+    }
+    
+    /* Falling blocks animation */
+    .falling-block {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      z-index: -1;
+    }
+    
+    .falling-i { background-color: var(--tetris-cyan); }
+    .falling-j { background-color: var(--tetris-blue); }
+    .falling-l { background-color: var(--tetris-orange); }
+    .falling-o { background-color: var(--tetris-yellow); }
+    .falling-t { background-color: var(--tetris-purple); }
+    .falling-s { background-color: var(--tetris-green); }
+    .falling-z { background-color: var(--tetris-red); }
+    
+    /* Line clear animation */
+    .line-clear {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 20px;
+      background-color: white;
+      opacity: 0;
+      z-index: 100;
+      animation: flash 0.5s;
+    }
+    
+    @keyframes flash {
+      0% { opacity: 0; }
+      50% { opacity: 0.8; }
+      100% { opacity: 0; }
+    }
+
+    /* Data table preview */
+    .data-table {
+      margin-top: 20px;
+      display: none;
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10px;
+      line-height: 1.2;
+    }
+    
+    .data-table th {
+      background-color: var(--tetris-dark);
+      color: var(--tetris-cyan);
+      padding: 5px;
+      text-align: left;
+      border: 1px solid var(--tetris-cyan);
+    }
+    
+    .data-table td {
+      padding: 5px;
+      border: 1px solid var(--tetris-gray);
+      color: white;
+    }
+    
+    .data-table tr:nth-child(odd) {
+      background-color: rgba(0, 0, 60, 0.4);
+    }
+    
+    .data-table tr:nth-child(even) {
+      background-color: rgba(0, 0, 40, 0.4);
+    }
+    
+    /* Responsive styles */
+    @media (max-width: 700px) {
+      .tetris-container {
+        max-width: 100%;
+      }
+      
+      h1 {
+        font-size: 18px;
+      }
+      
+      .file-preview {
+        font-size: 10px;
+      }
+      
+      .data-table {
+        font-size: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="tetris-container">
+    <div class="tetris-inner">
+      <h1>CONVERSOR TXT PARA EXCEL</h1>
+      <div class="form-group">
+        <label for="fileInput">SELECIONE SEU ARQUIVO TXT:</label>
+        <div id="dropArea" class="file-upload">
+          <div class="tetris-piece tetris-i">
+            <div class="block"></div>
+            <div class="block"></div>
+            <div class="block"></div>
+            <div class="block"></div>
+          </div>
+          <strong>CLIQUE OU ARRASTE O ARQUIVO</strong>
+          <p>APENAS ARQUIVOS .TXT SÃO ACEITOS</p>
+          <div id="fileName" class="file-name"></div>
+        </div>
+        <input type="file" id="fileInput" accept=".txt" class="hidden">
+      </div>
+      
+      <!-- Visualizador do arquivo -->
+      <div id="filePreview" class="file-preview"></div>
+      
+      <!-- Tabela de visualização de dados -->
+      <table id="dataTable" class="data-table"></table>
+      
+      <div class="button-container">
+        <button id="convertBtn" class="tetris-button" disabled>CONVERTER PARA EXCEL</button>
+        <button id="resetBtn" class="tetris-button tetris-button-blue">NOVO ARQUIVO</button>
+      </div>
+      <div id="loading" class="loading"></div>
+      <div id="mensagem" class="message"></div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Elementos do DOM
+      const fileInput = document.getElementById('fileInput');
+      const dropArea = document.getElementById('dropArea');
+      const fileName = document.getElementById('fileName');
+      const convertBtn = document.getElementById('convertBtn');
+      const mensagem = document.getElementById('mensagem');
+      const loading = document.getElementById('loading');
+      const filePreview = document.getElementById('filePreview');
+      const dataTable = document.getElementById('dataTable');
+      
+      // Som de efeitos do Tetris (simulado)
+      function playTetrisSound(type) {
+        // Apenas para fins de interface, não há som real
+        console.log(`Playing Tetris sound: ${type}`);
+      }
+      
+      // Função para exibir mensagens
+      function mostrarMensagem(texto, tipo) {
+        mensagem.textContent = texto;
+        mensagem.className = `message ${tipo}`;
+        mensagem.style.display = 'block';
+        
+        if (tipo === 'success') {
+          // Efeito visual de linha completa
+          const lineFlash = document.createElement('div');
+          lineFlash.className = 'line-clear';
+          document.body.appendChild(lineFlash);
+          
+          setTimeout(() => {
+            document.body.removeChild(lineFlash);
+          }, 500);
+        }
+      }
+      
+      // Função para limpar mensagens
+      function limparMensagem() {
+        mensagem.textContent = '';
+        mensagem.className = 'message';
+        mensagem.style.display = 'none';
+      }
+      
+      // Evento para selecionar arquivo ao clicar na área de drop
+      dropArea.addEventListener('click', function() {
+        fileInput.click();
+      });
+      
+      // Eventos de drag and drop
+      dropArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        dropArea.classList.add('drag-over');
+      });
+      
+      dropArea.addEventListener('dragleave', function() {
+        dropArea.classList.remove('drag-over');
+      });
+      
+      dropArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        dropArea.classList.remove('drag-over');
+        
+        if (e.dataTransfer.files.length) {
+          handleFile(e.dataTransfer.files[0]);
+        }
+      });
+      
+      // Evento ao selecionar arquivo via input
+      fileInput.addEventListener('change', function() {
+        if (fileInput.files.length > 0) {
+          handleFile(fileInput.files[0]);
+        }
+      });
+      
+      // Função para gerenciar o arquivo selecionado
+      function handleFile(file) {
+        if (file.name.toLowerCase().endsWith('.txt')) {
+          fileName.textContent = file.name;
+          convertBtn.disabled = false;
+          limparMensagem();
+          
+          // Exibir visualização do arquivo
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            const content = e.target.result;
+            
+            // Mostrar conteúdo do arquivo
+            filePreview.textContent = content;
+            filePreview.style.display = 'block';
+            
+            // Tentar processar e mostrar uma prévia da tabela
+            try {
+              const { dados } = parseTXT(content);
+              renderDataTable(dados.slice(0, 10)); // Mostrar apenas as primeiras 10 linhas
+            } catch (error) {
+              console.error("Erro ao gerar prévia:", error);
+            }
+          };
+          reader.readAsText(file);
+          
+          // Adicionar um bloco caindo para efeito visual
+          addFallingBlock();
+        } else {
+          fileName.textContent = '';
+          convertBtn.disabled = true;
+          filePreview.style.display = 'none';
+          dataTable.style.display = 'none';
+          mostrarMensagem('Por favor, selecione apenas arquivos TXT.', 'error');
+        }
+      }
+      
+      // Função para renderizar uma prévia da tabela de dados
+      function renderDataTable(dados) {
+        if (!dados || dados.length === 0) return;
+        
+        // Limpar tabela
+        dataTable.innerHTML = '';
+        
+        // Criar cabeçalho
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        
+        // Obter nomes das colunas do primeiro item
+        const colunas = Object.keys(dados[0]);
+        
+        colunas.forEach(coluna => {
+          const th = document.createElement('th');
+          th.textContent = coluna;
+          headerRow.appendChild(th);
+        });
+        
+        thead.appendChild(headerRow);
+        dataTable.appendChild(thead);
+        
+        // Criar corpo da tabela
+        const tbody = document.createElement('tbody');
+        
+        dados.forEach(linha => {
+          const tr = document.createElement('tr');
+          
+          colunas.forEach(coluna => {
+            const td = document.createElement('td');
+            td.textContent = linha[coluna];
+            tr.appendChild(td);
+          });
+          
+          tbody.appendChild(tr);
+        });
+        
+        dataTable.appendChild(tbody);
+        dataTable.style.display = 'table';
+      }
+      
+      // Evento de clique no botão de conversão
+      convertBtn.addEventListener('click', function() {
+        if (fileInput.files.length === 0) {
+          mostrarMensagem('Por favor, selecione um arquivo primeiro.', 'error');
+          return;
+        }
+        
+        const file = fileInput.files[0];
+        
+        // Iniciar indicador de carregamento
+        loading.style.display = 'block';
+        limparMensagem();
+        
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+          try {
+            const content = e.target.result;
+            
+            // Tentar processar o TXT
+            const resultado = parseTXT(content);
+            
+            // Gerar Excel
+            const excelData = gerarExcel(resultado);
+            
+            // Salvar arquivo
+            salvarArquivo(excelData, file.name);
+            
+            // Mensagem de sucesso
+            mostrarMensagem('Conversão concluída com sucesso!', 'success');
+          } catch (error) {
+            mostrarMensagem('Erro na conversão: ' + error.message, 'error');
+            console.error(error);
+          } finally {
+            loading.style.display = 'none';
+          }
+        };
+        
+        reader.onerror = function() {
+          mostrarMensagem('Erro ao ler o arquivo.', 'error');
+          loading.style.display = 'none';
+        };
+        
+        reader.readAsText(file);
+      });
+      
+      // Evento do botão para anexar novo arquivo (limpar estado)
+      document.getElementById('resetBtn').addEventListener('click', function() {
+        // Limpar input de arquivo
+        fileInput.value = '';
+        
+        // Limpar nome do arquivo
+        fileName.textContent = '';
+        
+        // Desabilitar botão de conversão
+        convertBtn.disabled = true;
+        
+        // Ocultar visualização do arquivo
+        filePreview.style.display = 'none';
+        filePreview.textContent = '';
+        
+        // Ocultar tabela de dados
+        dataTable.style.display = 'none';
+        dataTable.innerHTML = '';
+        
+        // Limpar mensagem
+        limparMensagem();
+        
+        // Adicionar animação de "linha completa" do Tetris
+        const lineFlash = document.createElement('div');
+        lineFlash.className = 'line-clear';
+        document.body.appendChild(lineFlash);
+        
+        setTimeout(() => {
+          document.body.removeChild(lineFlash);
+        }, 500);
+        
+        // Mostrar mensagem informativa
+        mostrarMensagem('Pronto para receber um novo arquivo!', 'success');
+      });
+      
+      // Função para processar o conteúdo do arquivo TXT e extrair a tabela
+      function parseTXT(texto) {
+        try {
+          const linhas = texto.split(/\r?\n/);
+          let startIndex = -1;
+          let headerLine = "";
+          
+          // Procura pela linha que contém "F I L I A L" e pula duas linhas (cabeçalho)
+          for (let i = 0; i < linhas.length; i++) {
+            if (linhas[i].includes("F I L I A L")) {
+              headerLine = linhas[i];
+              startIndex = i + 2; // Pula a linha de cabeçalho e a linha de separação
+              break;
+            }
+          }
+          
+          if (startIndex === -1) {
+            throw new Error("Não foi possível identificar o cabeçalho 'F I L I A L' no arquivo.");
+          }
+          
+          // Extrair informações do cabeçalho - exatamente como estão no arquivo
+          // Vamos guardar as linhas completas para preservar o formato original
+          let anoInfo = "";
+          let produtoInfo = "";
+          let operacaoInfo = "";
+          let periodoInfo = "";
+          
+          // Vamos capturar as três primeiras linhas do arquivo para preservar o cabeçalho original
+          if (startIndex >= 5) { // Garantir que temos pelo menos 3 linhas antes do cabeçalho
+            anoInfo = linhas[0];
+            produtoInfo = linhas[1];
+            operacaoInfo = linhas[2];
+            
+            // Adicionar informação de período se existir
+            for (let i = 0; i < startIndex - 2; i++) {
+              if (linhas[i].includes("Periodo de:")) {
+                periodoInfo = linhas[i];
+                break;
+              }
+            }
+          }
+          
+          const dados = [];
+          
+          // Itera pelas linhas a partir do início dos dados
+          for (let i = startIndex; i < linhas.length; i++) {
+            let linha = linhas[i].trim();
+            
+            // Ignora linhas vazias ou separadores
+            if (linha === "" || linha.startsWith("___")) {
+              continue;
+            }
+            
+            // Primeiro método: usar expressão regular para extrair dados
+            const regex = /^(.+?)\s+(\d{14})\s+(\d+(?:\.\d+)?|0)\s+(\d+(?:\.\d+)?|0)\s+(\d+(?:\.\d+)?|0)$/;
+            const match = regex.exec(linha);
+            
+            if (match) {
+              const [, filial, cnpj, patenteVal, sPantente, totalGeral] = match;
+              
+              dados.push({
+                "Filial": filial.trim(),
+                "CNPJ": cnpj.trim(),
+                "Patente Val": patenteVal.trim(),
+                "S/Patente": sPantente.trim(),
+                "Total Geral": totalGeral.trim()
+              });
+            } else {
+              // Método alternativo para linhas com formato diferente (como TOTAL GERAL)
+              // Extrair baseado em posições aproximadas dos campos
+              try {
+                // Verifica se é a linha de TOTAL GERAL
+                if (linha.startsWith("TOTAL GERAL")) {
+                  // Divide a linha em partes e procura pelos números
+                  const partes = linha.split(/\s+/);
+                  let numerosEncontrados = [];
+                  
+                  // Coleta os números da linha (normalmente os 3 últimos valores)
+                  for (const parte of partes) {
+                    if (/^\d+(?:\.\d+)?$/.test(parte)) {
+                      numerosEncontrados.push(parte);
+                    }
+                  }
+                  
+                  // Se encontrou os 3 números esperados
+                  if (numerosEncontrados.length === 3) {
+                    dados.push({
+                      "Filial": "TOTAL GERAL",
+                      "CNPJ": "",
+                      "Patente Val": numerosEncontrados[0],
+                      "S/Patente": numerosEncontrados[1],
+                      "Total Geral": numerosEncontrados[2]
+                    });
+                  }
+                } else {
+                  // Para outras linhas que não correspondem ao regex mas têm dados
+                  // Usar posições fixas para extração
+                  const filial = linha.substring(0, 30).trim();
+                  const cnpj = linha.substring(30, 47).trim();
+                  const patenteVal = linha.substring(47, 64).trim();
+                  const sPantente = linha.substring(64, 81).trim();
+                  const totalGeral = linha.substring(81).trim();
+                  
+                  // Verificar se os valores são válidos antes de adicionar
+                  if (filial && (patenteVal || sPantente || totalGeral)) {
+                    dados.push({
+                      "Filial": filial,
+                      "CNPJ": cnpj,
+                      "Patente Val": patenteVal,
+                      "S/Patente": sPantente,
+                      "Total Geral": totalGeral
+                    });
+                  }
+                }
+              } catch (error) {
+                console.error("Erro ao processar linha:", linha, error);
+                // Continuar processando as próximas linhas
+              }
+            }
+          }
+          
+          if (dados.length === 0) {
+            throw new Error("Nenhum dado válido foi encontrado no arquivo.");
+          }
+          
+          // Adicionar informações de cabeçalho como metadados
+          const metadata = {
+            anoInfo,
+            produtoInfo,
+            operacaoInfo,
+            periodoInfo
+          };
+          
+          return { dados, metadata };
+        } catch (error) {
+          throw error;
+        }
+      }
+      
+      // Função para gerar o arquivo Excel usando SheetJS
+      function gerarExcel(resultado) {
+        try {
+          const { dados, metadata } = resultado;
+          
+          // Definir larguras de coluna personalizadas
+          const wscols = [
+            { wch: 35 }, // Filial - mais larga
+            { wch: 15 }, // CNPJ
+            { wch: 12 }, // Patente Val
+            { wch: 12 }, // S/Patente
+            { wch: 12 }  // Total Geral
+          ];
+          
+          // Criar workbook
+          const workbook = XLSX.utils.book_new();
+          
+          // Criar planilha de dados com cabeçalhos originais
+          // Primeiro montamos um array com as informações de cabeçalho, extraindo-as do arquivo
+          const cabecalhos = [];
+          
+          // Extrair as linhas originais do texto para os cabeçalhos
+          let anoLinha = metadata.anoInfo || "";
+          let produtoLinha = metadata.produtoInfo || "";
+          let operacaoLinha = metadata.periodoInfo || "";
+          
+          // Adicionar as linhas como estão no arquivo original
+          cabecalhos.push([anoLinha]);
+          cabecalhos.push([produtoLinha]);
+          cabecalhos.push([operacaoLinha]);
+          
+          // Linha de separação
+          cabecalhos.push(["_".repeat(93)]);
+          
+          // Cabeçalho das colunas
+          cabecalhos.push(["F I L I A L", "CNPJ", "PATENTE VAL", "S/PANTENTE", "TOTAL GERAL"]);
+          
+          // Linha de separação
+          cabecalhos.push(["_".repeat(93)]);
+          
+          // Converter dados para formato de array para adicionar após os cabeçalhos
+          const dadosArray = dados.map(row => [
+            row["Filial"],
+            row["CNPJ"],
+            row["Patente Val"],
+            row["S/Patente"],
+            row["Total Geral"]
+          ]);
+          
+          // Combinar cabeçalhos e dados
+          const dadosCompletos = [...cabecalhos, ...dadosArray];
+          
+          // Criar planilha a partir dos dados completos
+          const worksheet = XLSX.utils.aoa_to_sheet(dadosCompletos);
+          
+          // Aplicar larguras de coluna
+          worksheet['!cols'] = wscols;
+          
+          // Adicionar planilha ao workbook
+          XLSX.utils.book_append_sheet(workbook, worksheet, "Dados");
+          
+          // Criar também uma planilha de informações formatada
+          if (metadata && Object.values(metadata).some(v => v)) {
+            const metadataArray = [
+              { "Campo": "Ano", "Valor": metadata.anoInfo || "" },
+              { "Campo": "Produto", "Valor": metadata.produtoInfo || "" },
+              { "Campo": "Operação", "Valor": metadata.operacaoInfo || "" },
+              { "Campo": "Período", "Valor": metadata.periodoInfo || "" }
+            ];
+            
+            const metadataSheet = XLSX.utils.json_to_sheet(metadataArray);
+            XLSX.utils.book_append_sheet(workbook, metadataSheet, "Informações");
+          }
+          
+          // Gerar arquivo binário
+          const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+          return wbout;
+        } catch (error) {
+          throw error;
+        }
+      }
+      
+      // Função para salvar o arquivo
+      function salvarArquivo(data, nomeOriginal) {
+        // Criar nome de arquivo baseado no original
+        const nomeBase = nomeOriginal.replace(/\.txt$/i, '');
+        const nomeArquivo = `${nomeBase}_convertido.xlsx`;
+        
+        // Criar blob e link de download
+        const blob = new Blob([data], { type: "application/octet-stream" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = nomeArquivo;
+        document.body.appendChild(a);
+        a.click();
+        
+        // Limpar o URL do objeto
+        setTimeout(() => {
+          URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+        }, 100);
+      }
+      
+      // Função para adicionar bloco caindo para efeito visual
+      function addFallingBlock() {
+        const container = document.querySelector('.tetris-inner');
+        const blockTypes = ['falling-i', 'falling-j', 'falling-l', 'falling-o', 'falling-t', 'falling-s', 'falling-z'];
+        
+        const block = document.createElement('div');
+        block.className = `falling-block ${blockTypes[Math.floor(Math.random() * blockTypes.length)]}`;
+        block.style.left = `${Math.random() * (container.offsetWidth - 20)}px`;
+        block.style.top = '-20px';
+        
+        container.appendChild(block);
+        
+        let position = -20;
+        const speed = 1 + Math.random() * 2;
+        
+        const moveDown = setInterval(() => {
+          position += speed;
+          block.style.top = `${position}px`;
+          
+          if (position > container.offsetHeight) {
+            clearInterval(moveDown);
+            container.removeChild(block);
+          }
+        }, 50);
+      }
+      
+      // Adicionar blocos caindo periodicamente
+      setInterval(addFallingBlock, 2000);
+    });
+  </script>
+</body>
+</html>
